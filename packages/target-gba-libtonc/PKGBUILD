@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Adrian "asie" Siekierka, 2023
+
+pkgname=target-gba-libtonc
+_pkgver=1.4.3
+pkgver=1.4.3.r15.cc862ce
+pkgrel=4
+epoch=
+pkgdesc="GBA libtonc library"
+arch=(any)
+url="https://github.com/gbadev-org/libtonc"
+license=("MIT")
+source=(
+	"$pkgname::git+https://github.com/gbadev-org/libtonc#branch=master"
+	"libtonc-wf.patch"
+	"libtonc-asminc-unique-sections.patch"
+	"libtonc-natu-general-fixes.patch"
+	"Makefile.wf"
+)
+depends=()
+makedepends=(target-gba)
+sha256sums=(
+	'SKIP'
+	'SKIP'
+	'SKIP'
+	'SKIP'
+	'SKIP'
+)
+options=(!strip)
+
+. "/wf/config/runtime-env-vars.sh"
+
+. "../templates/git-pkgver.PKGBUILD"
+
+prepare() {
+	cd "$pkgname"
+	cp ../Makefile.wf .
+
+	# ._.
+	for i in libtonc-wf.patch libtonc-asminc-unique-sections.patch libtonc-natu-general-fixes.patch; do
+		unix2dos ../"$i"
+		patch --binary -p1 <../"$i"
+	done
+
+	# long-deprecated header with distinct licensing
+	rm include/tonc_libgba.h
+
+	# use .ewram_bss instead of .sbss
+	sed -i -e "s/\\.sbss/.ewram_bss/g" include/tonc_asminc.h include/tonc_types.h
+}
+
+build() {
+	CFLAGS=""
+	cd "$pkgname"
+	make -f Makefile.wf
+}
+
+package() {
+	cd "$pkgname"
+	make -f Makefile.wf DESTDIR="$pkgdir$WF_DESTDIR" install
+}

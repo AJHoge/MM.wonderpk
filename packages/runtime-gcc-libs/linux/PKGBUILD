@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Adrian "asie" Siekierka, 2023
+
+pkgname=(runtime-gcc-libs)
+pkgver=0.3.19
+pkgrel=1
+epoch=
+pkgdesc="GCC runtime libraries"
+arch=("i686" "x86_64" "armv6h" "aarch64")
+url=""
+license=("GPL-3.0-or-later")
+source=()
+sha256sums=()
+groups=(wonderful-base)
+
+. "/wf/config/runtime-env-vars.sh"
+	
+package() {
+	# Copy libgcc_s.so, libgomp.so and libstdc++.so from the base system,
+	# which is guaranteed to be correct for the compiled binaries
+	# due to the janky way in which the containerized build works.
+
+	# ...
+	# I'm sorry.
+
+	cd "$pkgdir"
+	mkdir lib
+	cp -d /usr/lib/libstdc++"$WF_LIBRARY_SUFFIX"* lib/
+	wf_runtime_patchelf lib/libstdc++"$WF_LIBRARY_SUFFIX"
+	cp -d /usr/lib/libgcc_s"$WF_LIBRARY_SUFFIX"* lib/
+	wf_runtime_patchelf lib/libgcc_s"$WF_LIBRARY_SUFFIX".1
+	cp -d /usr/lib/libgomp"$WF_LIBRARY_SUFFIX"* lib/
+	wf_runtime_patchelf lib/libgomp"$WF_LIBRARY_SUFFIX".1
+	wf_relocate_path_to_destdir
+}

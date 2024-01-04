@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Adrian "asie" Siekierka, 2023
+
+pkgname=wf-lzsa
+_pkgver=1.4.1
+pkgver=1.4.1.r476.8b90350
+pkgrel=1
+epoch=
+pkgdesc="Byte-aligned, efficient lossless packer that is optimized for fast decompression on 8-bit micros"
+arch=("i686" "x86_64" "armv6h" "aarch64")
+url="https://github.com/WonderfulToolchain/lzsa"
+license=("zlib")
+source=("$pkgname::git+https://github.com/WonderfulToolchain/lzsa#branch=master")
+depends=(runtime-musl)
+makedepends=(runtime-musl-dev)
+sha256sums=('SKIP')
+
+. "/wf/config/runtime-env-vars.sh"
+
+. "../templates/git-pkgver.PKGBUILD"
+
+build() {
+	cd "$pkgname"
+	make APP=wf-lzsa LDFLAGS="$WF_RUNTIME_LDFLAGS"
+}
+
+package() {
+	cd "$pkgname"
+	mkdir -p "$pkgdir$WF_DESTDIR"/bin
+	cp -a wf-lzsa "$pkgdir$WF_DESTDIR"/bin
+}

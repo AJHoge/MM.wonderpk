@@ -1,0 +1,4 @@
+build
+**/pkg
+**/src
+**/__pycache__

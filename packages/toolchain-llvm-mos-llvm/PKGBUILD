@@ -1,0 +1,110 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Adrian "asie" Siekierka, 2023
+
+pkgname=(toolchain-llvm-mos-llvm toolchain-llvm-mos-llvm-dev)
+_pkgver=17.0.0
+pkgver=17.0.0.r461091.2bf839b2113e
+pkgrel=1
+epoch=
+pkgdesc="LLVM fork modified to target MOS CPUs"
+arch=("i686" "x86_64" "aarch64")
+url="https://github.com/WonderfulToolchain/llvm-mos"
+license=("Apache-2.0")
+source=(
+	"llvm-mos::git+https://github.com/WonderfulToolchain/llvm-mos"
+)
+depends=(runtime-musl)
+makedepends=(runtime-musl-dev)
+sha256sums=(
+	'SKIP'
+)
+
+. "/wf/config/runtime-env-vars.sh"
+
+prepare() {
+	mkdir -p llvm-mos-build
+}
+
+GIT_REPO_DIR=llvm-mos
+. "../templates/git-pkgver.PKGBUILD"
+
+build() {
+	cd llvm-mos-build
+
+	# Explanation behind configuration choices:
+	# LLVM_USE_LINKER: lower linking RAM usage
+	# LLVM_*_LLVM_DYLIB, LLVM_ENABLE_*, LLVM_INCLUDE_*: reduce toolchain size
+	# LLVM_*_TARGETS_TO_BUILD: build MOS target only
+
+        LDFLAGS="$WF_RUNTIME_LDFLAGS" \
+		cmake -G Ninja \
+		-DCMAKE_INSTALL_PREFIX="$WF_PATH"/toolchain/llvm-mos \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DLLVM_USE_LINKER=lld \
+		-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="MOS" \
+		-DLLVM_TARGETS_TO_BUILD="" \
+		-DLLVM_BUILD_LLVM_DYLIB=ON \
+		-DLLVM_LINK_LLVM_DYLIB=ON \
+		-DLLVM_ENABLE_BINDINGS=OFF \
+		-DLLVM_INCLUDE_BENCHMARKS=OFF \
+		-DLLVM_INCLUDE_EXAMPLES=OFF \
+		-DLLVM_INCLUDE_TESTS=OFF \
+		-DLLVM_ENABLE_PROJECTS="llvm;clang;lld" \
+		../llvm-mos/llvm
+
+	ninja
+}
+
+package_toolchain-llvm-mos-llvm() {
+	groups=(toolchain-llvm-mos)
+
+	cd llvm-mos-build
+	DESTDIR="$pkgdir" ninja install
+	cd "$pkgdir"
+	wf_relocate_path_to_destdir
+
+	# remove unnecessary files
+	rm -r share/clang share/opt-viewer share/scan-build share/scan-view
+	rm -r include lib/*.a lib/cmake bin/*-test
+
+	# moved to llvm-dev
+	rm bin/llvm-config
+	rm bin/llvm-tblgen
+
+	# removed
+	# TODO: expand this list
+	rm bin/amdgpu-arch
+	rm bin/llvm-cvtres
+	rm bin/llvm-dlltool
+	rm bin/llvm-exegesis
+	rm bin/llvm-pdbutil
+	rm bin/llvm-rc
+	rm bin/nvptx-arch
+	rm bin/wasm-ld
+}
+
+package_toolchain-llvm-mos-llvm-dev() {
+	pkgdesc="Development libraries for LLVM fork modified to target MOS CPUs"
+
+	cd llvm-mos-build
+	DESTDIR="$pkgdir" ninja install
+	cd "$pkgdir"
+	wf_relocate_path_to_destdir
+
+	# remove unnecessary files
+	rm -r libexec share
+
+	# moved to llvm-dev
+	mkdir bin2
+	mv bin/llvm-config bin2/
+	mv bin/llvm-tblgen bin2/
+	rm -r bin
+	mv bin2 bin
+
+	mkdir lib2
+	mv lib/*.a lib2/
+	mv lib/cmake lib2/
+	rm -r lib
+	mv lib2 lib
+}

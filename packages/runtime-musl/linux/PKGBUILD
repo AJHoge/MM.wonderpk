@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Adrian "asie" Siekierka, 2023
+
+pkgname=(runtime-musl runtime-musl-dev)
+pkgver=1.2.4
+pkgrel=1
+epoch=
+pkgdesc="musl runtime"
+arch=("i686" "x86_64" "armv6h" "aarch64")
+url="http://www.musl-libc.org"
+license=("MIT")
+source=("https://www.musl-libc.org/releases/musl-$pkgver.tar.gz")
+sha256sums=('7a35eae33d5372a7c0da1188de798726f68825513b7ae3ebe97aaaa52114f039')
+
+prepare() {
+	mkdir -p "musl-$pkgver-build"
+}
+
+build() {
+	cd "musl-$pkgver"-build
+	../"musl-$pkgver"/configure --prefix=/ --syslibdir=/lib
+	make
+}
+
+package_runtime-musl() {
+	groups=(wonderful-base)
+
+	cd "musl-$pkgver"-build
+	mkdir -p "$pkgdir"/bin
+	mkdir -p "$pkgdir"/lib
+	cp lib/*.so "$pkgdir"/lib/
+	ln -s ../lib/libc.so "$pkgdir"/bin/wf-runtime-ldd
+	ln -s libc.so "$pkgdir"/lib/ld-musl-$CARCH.so.1
+
+	cd "$pkgdir"
+	wf_relocate_path_to_destdir
+}
+
+package_runtime-musl-dev() {
+	pkgdesc="musl runtime development files"
+	depends=(runtime-musl)
+
+	cd "musl-$pkgver"-build
+	make DESTDIR="$pkgdir" install
+	rm "$pkgdir"/lib/*.so
+	rm "$pkgdir"/lib/*.so.*
+
+	cd "$pkgdir"
+	wf_relocate_path_to_destdir
+}
